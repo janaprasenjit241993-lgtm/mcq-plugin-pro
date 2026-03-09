@@ -1,0 +1,116 @@
+.smpp-wrapper {
+  max-width: 860px;
+  margin: 0 auto;
+  font-family: Arial, sans-serif;
+  color: #1d2433;
+}
+
+.smpp-title {
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.smpp-panel {
+  background: #fff;
+  border: 1px solid #d9dce3;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.smpp-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.smpp-grid label span {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.smpp-grid select {
+  width: 100%;
+}
+
+.smpp-btn {
+  background: #0b74b6;
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.smpp-btn:hover {
+  background: #085c90;
+}
+
+.smpp-meta {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.smpp-question {
+  margin-bottom: 12px;
+  background: #fff5c8;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.smpp-options {
+  display: grid;
+  gap: 10px;
+}
+
+.smpp-option {
+  text-align: left;
+  border: 1px solid #b9c2cf;
+  border-radius: 8px;
+  background: #f5f8fc;
+  padding: 11px;
+  cursor: pointer;
+}
+
+.smpp-option.locked {
+  cursor: not-allowed;
+}
+
+.smpp-option.correct {
+  background: #43b047;
+  border-color: #2e8a31;
+  color: #fff;
+}
+
+.smpp-option.wrong {
+  background: #e84545;
+  border-color: #b62f2f;
+  color: #fff;
+}
+
+.smpp-actions {
+  margin-top: 12px;
+}
+
+.smpp-report-list {
+  margin: 12px 0 0;
+  padding-left: 20px;
+}
+
+.smpp-finish {
+  margin: 0;
+  padding: 12px;
+  background: #e9f7ec;
+  border-radius: 8px;
+}
+
+@media (max-width: 600px) {
+  .smpp-panel {
+    padding: 14px;
+  }
+}
