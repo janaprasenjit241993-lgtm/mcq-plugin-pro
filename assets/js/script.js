@@ -1,7 +1,11 @@
 (function ($) {
     'use strict';
 
+    const FILTER_FIELDS = ['medium', 'semester', 'subject', 'chapter', 'topic'];
+
     const state = {
+        questionBank: [],
+        indexes: null,
         questions: [],
         currentIndex: 0,
         score: 0,
@@ -32,69 +36,235 @@
     };
 
     function init() {
-        loadFilters();
+        initializeFilterState();
         bindEvents();
+        loadQuestionBank();
     }
 
     function bindEvents() {
+        dom.medium.on('change', onMediumChange);
+        dom.semester.on('change', onSemesterChange);
+        dom.subject.on('change', onSubjectChange);
+        dom.chapter.on('change', onChapterChange);
+
         dom.start.on('click', startPractice);
         dom.next.on('click', showNextQuestion);
         dom.performance.on('click', renderReport);
     }
 
-    function loadFilters() {
+    function initializeFilterState() {
+        resetSelect(dom.medium, 'Select Medium', false);
+        resetSelect(dom.semester, 'Select Semester', true);
+        resetSelect(dom.subject, 'Select Subject', true);
+        resetSelect(dom.chapter, 'Select Chapter', true);
+        resetSelect(dom.topic, 'Select Topic', true);
+    }
+
+    function loadQuestionBank() {
         $.post(smppConfig.ajaxUrl, {
-            action: 'smpp_get_filters',
+            action: 'smpp_get_question_bank',
             nonce: smppConfig.nonce,
         }).done(function (response) {
-            if (!response.success) return;
-            populateSelect(dom.medium, response.data.mediums, 'Select Medium');
-            populateSelect(dom.semester, response.data.semesters, 'Select Semester');
-            populateSelect(dom.subject, response.data.subjects, 'Select Subject');
-            populateSelect(dom.chapter, response.data.chapters, 'Select Chapter');
-            populateSelect(dom.topic, response.data.topics, 'Select Topic');
+            if (!response.success) {
+                return;
+            }
+
+            state.questionBank = Array.isArray(response.data.questions) ? response.data.questions : [];
+            state.indexes = buildIndexes(state.questionBank);
+            populateSelect(dom.medium, state.indexes.mediums, 'Select Medium');
+        }).fail(function () {
+            alert(smppConfig.strings.loadError);
         });
     }
 
-    function populateSelect($select, items, placeholder) {
+    function buildIndexes(rows) {
+        const mediums = new Set();
+        const semestersByMedium = new Map();
+        const subjectsByMediumSemester = new Map();
+        const chaptersByMediumSemesterSubject = new Map();
+        const topicsByMediumSemesterSubjectChapter = new Map();
+
+        rows.forEach(function (row) {
+            const medium = safeValue(row.medium);
+            const semester = safeValue(row.semester);
+            const subject = safeValue(row.subject);
+            const chapter = safeValue(row.chapter);
+            const topic = safeValue(row.topic);
+
+            if (!medium) {
+                return;
+            }
+
+            mediums.add(medium);
+            addSetValue(semestersByMedium, composeKey([medium]), semester);
+            addSetValue(subjectsByMediumSemester, composeKey([medium, semester]), subject);
+            addSetValue(chaptersByMediumSemesterSubject, composeKey([medium, semester, subject]), chapter);
+            addSetValue(topicsByMediumSemesterSubjectChapter, composeKey([medium, semester, subject, chapter]), topic);
+        });
+
+        return {
+            mediums: sortedSetValues(mediums),
+            semestersByMedium,
+            subjectsByMediumSemester,
+            chaptersByMediumSemesterSubject,
+            topicsByMediumSemesterSubjectChapter,
+        };
+    }
+
+    function onMediumChange() {
+        const medium = dom.medium.val();
+
+        resetSelect(dom.semester, 'Select Semester', !medium);
+        resetSelect(dom.subject, 'Select Subject', true);
+        resetSelect(dom.chapter, 'Select Chapter', true);
+        resetSelect(dom.topic, 'Select Topic', true);
+
+        if (!medium || !state.indexes) {
+            return;
+        }
+
+        const semesters = getIndexedOptions(state.indexes.semestersByMedium, [medium]);
+        populateSelect(dom.semester, semesters, 'Select Semester');
+        dom.semester.prop('disabled', false);
+    }
+
+    function onSemesterChange() {
+        const medium = dom.medium.val();
+        const semester = dom.semester.val();
+
+        resetSelect(dom.subject, 'Select Subject', !semester);
+        resetSelect(dom.chapter, 'Select Chapter', true);
+        resetSelect(dom.topic, 'Select Topic', true);
+
+        if (!medium || !semester || !state.indexes) {
+            return;
+        }
+
+        const subjects = getIndexedOptions(state.indexes.subjectsByMediumSemester, [medium, semester]);
+        populateSelect(dom.subject, subjects, 'Select Subject');
+        dom.subject.prop('disabled', false);
+    }
+
+    function onSubjectChange() {
+        const medium = dom.medium.val();
+        const semester = dom.semester.val();
+        const subject = dom.subject.val();
+
+        resetSelect(dom.chapter, 'Select Chapter', !subject);
+        resetSelect(dom.topic, 'Select Topic', true);
+
+        if (!medium || !semester || !subject || !state.indexes) {
+            return;
+        }
+
+        const chapters = getIndexedOptions(state.indexes.chaptersByMediumSemesterSubject, [medium, semester, subject]);
+        populateSelect(dom.chapter, chapters, 'Select Chapter');
+        dom.chapter.prop('disabled', false);
+    }
+
+    function onChapterChange() {
+        const medium = dom.medium.val();
+        const semester = dom.semester.val();
+        const subject = dom.subject.val();
+        const chapter = dom.chapter.val();
+
+        resetSelect(dom.topic, 'Select Topic', !chapter);
+
+        if (!medium || !semester || !subject || !chapter || !state.indexes) {
+            return;
+        }
+
+        const topics = getIndexedOptions(state.indexes.topicsByMediumSemesterSubjectChapter, [medium, semester, subject, chapter]);
+        populateSelect(dom.topic, topics, 'Select Topic');
+        dom.topic.prop('disabled', false);
+    }
+
+    function resetSelect($select, placeholder, disabled) {
         $select.empty().append(`<option value="">${placeholder}</option>`);
+        $select.prop('disabled', !!disabled);
+    }
+
+    function populateSelect($select, items, placeholder) {
+        resetSelect($select, placeholder, false);
         items.forEach(function (item) {
             $select.append(`<option value="${escapeHtml(item)}">${escapeHtml(item)}</option>`);
         });
     }
 
+    function getIndexedOptions(map, keyParts) {
+        const values = map.get(composeKey(keyParts));
+        return values ? sortedSetValues(values) : [];
+    }
+
+    function composeKey(parts) {
+        return parts.map(safeValue).join('||');
+    }
+
+    function addSetValue(map, key, value) {
+        if (!value) {
+            return;
+        }
+
+        if (!map.has(key)) {
+            map.set(key, new Set());
+        }
+
+        map.get(key).add(value);
+    }
+
+    function sortedSetValues(setValues) {
+        return Array.from(setValues).sort(function (a, b) {
+            return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+        });
+    }
+
+    function safeValue(value) {
+        return typeof value === 'string' ? value.trim() : '';
+    }
+
     function startPractice() {
         resetSession();
 
-        const payload = {
-            action: 'smpp_get_questions',
-            nonce: smppConfig.nonce,
-            medium: dom.medium.val(),
-            semester: dom.semester.val(),
-            subject: dom.subject.val(),
-            chapter: dom.chapter.val(),
-            topic: dom.topic.val(),
-        };
-
-        $.post(smppConfig.ajaxUrl, payload).done(function (response) {
-            if (!response.success) {
-                alert(smppConfig.strings.loadError);
-                return;
-            }
-
-            state.questions = response.data.questions || [];
-            if (!state.questions.length) {
-                alert(smppConfig.strings.noQuestions);
-                return;
-            }
-
-            dom.total.text(state.questions.length);
-            dom.session.show();
-            startTimer();
-            renderQuestion();
-        }).fail(function () {
-            alert(smppConfig.strings.loadError);
+        const criteria = {};
+        FILTER_FIELDS.forEach(function (field) {
+            criteria[field] = dom[field].val();
         });
+
+        const filtered = filterQuestions(state.questionBank, criteria);
+        if (!filtered.length) {
+            alert(smppConfig.strings.noQuestions);
+            return;
+        }
+
+        state.questions = filtered;
+        shuffleArray(state.questions);
+
+        dom.total.text(state.questions.length);
+        dom.session.show();
+        startTimer();
+        renderQuestion();
+    }
+
+    function filterQuestions(rows, criteria) {
+        return rows.filter(function (question) {
+            return FILTER_FIELDS.every(function (field) {
+                const selected = safeValue(criteria[field]);
+                if (!selected) {
+                    return true;
+                }
+
+                return safeValue(question[field]) === selected;
+            });
+        });
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i -= 1) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const temp = array[i];
+            array[i] = array[j];
+            array[j] = temp;
+        }
     }
 
     function renderQuestion() {
