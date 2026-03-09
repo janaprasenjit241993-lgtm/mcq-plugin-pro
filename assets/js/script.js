@@ -5,7 +5,6 @@
 
     const state = {
         questionBank: [],
-        indexes: null,
         questions: [],
         currentIndex: 0,
         score: 0,
@@ -46,6 +45,7 @@
         dom.semester.on('change', onSemesterChange);
         dom.subject.on('change', onSubjectChange);
         dom.chapter.on('change', onChapterChange);
+        dom.topic.on('change', onTopicChange);
 
         dom.start.on('click', startPractice);
         dom.next.on('click', showNextQuestion);
@@ -69,114 +69,119 @@
                 return;
             }
 
-            state.questionBank = Array.isArray(response.data.questions) ? response.data.questions : [];
-            state.indexes = buildIndexes(state.questionBank);
-            populateSelect(dom.medium, state.indexes.mediums, 'Select Medium');
+            state.questionBank = parseQuestionBank(response.data);
+            populateSelect(dom.medium, getUniqueValues(state.questionBank, function () {
+                return true;
+            }, 'medium'), 'Select Medium');
         }).fail(function () {
             alert(smppConfig.strings.loadError);
         });
     }
 
-    function buildIndexes(rows) {
-        const mediums = new Set();
-        const semestersByMedium = new Map();
-        const subjectsByMediumSemester = new Map();
-        const chaptersByMediumSemesterSubject = new Map();
-        const topicsByMediumSemesterSubjectChapter = new Map();
-
-        rows.forEach(function (row) {
-            const medium = safeValue(row.medium);
-            const semester = safeValue(row.semester);
-            const subject = safeValue(row.subject);
-            const chapter = safeValue(row.chapter);
-            const topic = safeValue(row.topic);
-
-            if (!medium) {
-                return;
-            }
-
-            mediums.add(medium);
-            addSetValue(semestersByMedium, composeKey([medium]), semester);
-            addSetValue(subjectsByMediumSemester, composeKey([medium, semester]), subject);
-            addSetValue(chaptersByMediumSemesterSubject, composeKey([medium, semester, subject]), chapter);
-            addSetValue(topicsByMediumSemesterSubjectChapter, composeKey([medium, semester, subject, chapter]), topic);
-        });
-
-        return {
-            mediums: sortedSetValues(mediums),
-            semestersByMedium,
-            subjectsByMediumSemester,
-            chaptersByMediumSemesterSubject,
-            topicsByMediumSemesterSubjectChapter,
-        };
-    }
-
     function onMediumChange() {
-        const medium = dom.medium.val();
+        const medium = safeValue(dom.medium.val());
 
         resetSelect(dom.semester, 'Select Semester', !medium);
         resetSelect(dom.subject, 'Select Subject', true);
         resetSelect(dom.chapter, 'Select Chapter', true);
         resetSelect(dom.topic, 'Select Topic', true);
 
-        if (!medium || !state.indexes) {
+        if (!medium) {
             return;
         }
 
-        const semesters = getIndexedOptions(state.indexes.semestersByMedium, [medium]);
+        const semesters = getUniqueValues(state.questionBank, function (row) {
+            return safeValue(row.medium) === medium;
+        }, 'semester');
+
+        if (!semesters.length) {
+            return;
+        }
+
         populateSelect(dom.semester, semesters, 'Select Semester');
         dom.semester.prop('disabled', false);
     }
 
     function onSemesterChange() {
-        const medium = dom.medium.val();
-        const semester = dom.semester.val();
+        const medium = safeValue(dom.medium.val());
+        const semester = safeValue(dom.semester.val());
 
         resetSelect(dom.subject, 'Select Subject', !semester);
         resetSelect(dom.chapter, 'Select Chapter', true);
         resetSelect(dom.topic, 'Select Topic', true);
 
-        if (!medium || !semester || !state.indexes) {
+        if (!medium || !semester) {
             return;
         }
 
-        const subjects = getIndexedOptions(state.indexes.subjectsByMediumSemester, [medium, semester]);
+        const subjects = getUniqueValues(state.questionBank, function (row) {
+            return safeValue(row.medium) === medium
+                && safeValue(row.semester) === semester;
+        }, 'subject');
+
+        if (!subjects.length) {
+            return;
+        }
+
         populateSelect(dom.subject, subjects, 'Select Subject');
         dom.subject.prop('disabled', false);
     }
 
     function onSubjectChange() {
-        const medium = dom.medium.val();
-        const semester = dom.semester.val();
-        const subject = dom.subject.val();
+        const medium = safeValue(dom.medium.val());
+        const semester = safeValue(dom.semester.val());
+        const subject = safeValue(dom.subject.val());
 
         resetSelect(dom.chapter, 'Select Chapter', !subject);
         resetSelect(dom.topic, 'Select Topic', true);
 
-        if (!medium || !semester || !subject || !state.indexes) {
+        if (!medium || !semester || !subject) {
             return;
         }
 
-        const chapters = getIndexedOptions(state.indexes.chaptersByMediumSemesterSubject, [medium, semester, subject]);
+        const chapters = getUniqueValues(state.questionBank, function (row) {
+            return safeValue(row.medium) === medium
+                && safeValue(row.semester) === semester
+                && safeValue(row.subject) === subject;
+        }, 'chapter');
+
+        if (!chapters.length) {
+            return;
+        }
+
         populateSelect(dom.chapter, chapters, 'Select Chapter');
         dom.chapter.prop('disabled', false);
     }
 
     function onChapterChange() {
-        const medium = dom.medium.val();
-        const semester = dom.semester.val();
-        const subject = dom.subject.val();
-        const chapter = dom.chapter.val();
+        const medium = safeValue(dom.medium.val());
+        const semester = safeValue(dom.semester.val());
+        const subject = safeValue(dom.subject.val());
+        const chapter = safeValue(dom.chapter.val());
 
         resetSelect(dom.topic, 'Select Topic', !chapter);
 
-        if (!medium || !semester || !subject || !chapter || !state.indexes) {
+        if (!medium || !semester || !subject || !chapter) {
             return;
         }
 
-        const topics = getIndexedOptions(state.indexes.topicsByMediumSemesterSubjectChapter, [medium, semester, subject, chapter]);
+        const topics = getUniqueValues(state.questionBank, function (row) {
+            return safeValue(row.medium) === medium
+                && safeValue(row.semester) === semester
+                && safeValue(row.subject) === subject
+                && safeValue(row.chapter) === chapter;
+        }, 'topic');
+
+        if (!topics.length) {
+            return;
+        }
+
         populateSelect(dom.topic, topics, 'Select Topic');
         dom.topic.prop('disabled', false);
+    }
+
+    function onTopicChange() {
+        // Topic is the last level in the cascade and has no child dropdown.
     }
 
     function resetSelect($select, placeholder, disabled) {
@@ -191,31 +196,107 @@
         });
     }
 
-    function getIndexedOptions(map, keyParts) {
-        const values = map.get(composeKey(keyParts));
-        return values ? sortedSetValues(values) : [];
-    }
-
-    function composeKey(parts) {
-        return parts.map(safeValue).join('||');
-    }
-
-    function addSetValue(map, key, value) {
-        if (!value) {
-            return;
-        }
-
-        if (!map.has(key)) {
-            map.set(key, new Set());
-        }
-
-        map.get(key).add(value);
-    }
-
-    function sortedSetValues(setValues) {
-        return Array.from(setValues).sort(function (a, b) {
+    function sortValues(values) {
+        return values.sort(function (a, b) {
             return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
         });
+    }
+
+    function getUniqueValues(rows, predicate, field) {
+        return sortValues([
+            ...new Set(
+                rows
+                    .filter(predicate)
+                    .map(function (row) {
+                        return safeValue(row[field]);
+                    })
+                    .filter(Boolean)
+            ),
+        ]);
+    }
+
+    function parseQuestionBank(payload) {
+        const candidateRows = payload && payload.questions;
+
+        if (Array.isArray(candidateRows)) {
+            return candidateRows.map(normalizeQuestionRow).filter(function (row) {
+                return Object.keys(row).length > 0;
+            });
+        }
+
+        if (payload && typeof payload.csv === 'string') {
+            return parseCsvToObjects(payload.csv).map(normalizeQuestionRow);
+        }
+
+        return [];
+    }
+
+    function normalizeQuestionRow(row) {
+        if (!row || typeof row !== 'object') {
+            return {};
+        }
+
+        const normalized = {};
+        Object.keys(row).forEach(function (key) {
+            normalized[key] = typeof row[key] === 'string' ? row[key].trim() : row[key];
+        });
+
+        return normalized;
+    }
+
+    function parseCsvToObjects(csvText) {
+        const lines = csvText.split(/\r?\n/).filter(Boolean);
+        if (!lines.length) {
+            return [];
+        }
+
+        const headers = parseCsvLine(lines[0]).map(function (header) {
+            return header.trim();
+        });
+
+        return lines.slice(1).map(function (line) {
+            const values = parseCsvLine(line);
+            const row = {};
+
+            headers.forEach(function (header, index) {
+                row[header] = safeValue(values[index]);
+            });
+
+            return row;
+        });
+    }
+
+    function parseCsvLine(line) {
+        const cells = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i += 1) {
+            const char = line[i];
+            const nextChar = line[i + 1];
+
+            if (char === '"' && inQuotes && nextChar === '"') {
+                current += '"';
+                i += 1;
+                continue;
+            }
+
+            if (char === '"') {
+                inQuotes = !inQuotes;
+                continue;
+            }
+
+            if (char === ',' && !inQuotes) {
+                cells.push(current);
+                current = '';
+                continue;
+            }
+
+            current += char;
+        }
+
+        cells.push(current);
+        return cells;
     }
 
     function safeValue(value) {
