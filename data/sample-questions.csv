@@ -1,0 +1,5 @@
+medium,semester,subject,chapter,topic,question,option_a,option_b,option_c,option_d,correct,explanation,link
+English,Semester 1,Mathematics,Algebra,Linear Equations,What is the value of x in 2x + 3 = 11?,2,3,4,5,c,Subtract 3 from both sides then divide by 2.,https://example.com/linear-equations
+English,Semester 1,Mathematics,Geometry,Triangles,How many degrees are in the sum of interior angles of a triangle?,90,120,180,360,c,The interior angles of any triangle always sum to 180 degrees.,https://example.com/triangles
+English,Semester 2,Physics,Mechanics,Force,What is the SI unit of force?,Joule,Newton,Pascal,Watt,b,Force is measured in newtons (N).,https://example.com/force
+Bangla,Semester 2,Chemistry,Atomic Structure,Periodic Table,Which element has the atomic number 8?,Nitrogen,Oxygen,Carbon,Hydrogen,b,Atomic number 8 corresponds to oxygen.,https://example.com/periodic-table
