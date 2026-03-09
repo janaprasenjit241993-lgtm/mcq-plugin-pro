@@ -74,7 +74,7 @@ class Smart_MCQ_Practice_Pro {
         wp_register_script(
             'smpp-script',
             SMPP_PLUGIN_URL . 'assets/js/script.js',
-            array('jquery'),
+            array('jquery', 'smpp-mathjax'),
             '1.0.0',
             true
         );
@@ -89,7 +89,7 @@ class Smart_MCQ_Practice_Pro {
 
         wp_add_inline_script(
             'smpp-mathjax',
-            'window.MathJax = {tex: {inlineMath: [["$","$"], ["\\(","\\)"]], displayMath: [["$$","$$"], ["\\[","\\]"]]}};',
+            'window.MathJax = {tex: {inlineMath: [["$", "$"], ["\\(", "\\)"]], displayMath: [["$$","$$"], ["\\[","\\]"]]}, svg: {fontCache: "global"}};',
             'before'
         );
 
@@ -108,7 +108,6 @@ class Smart_MCQ_Practice_Pro {
     {
         wp_enqueue_style('smpp-style');
         wp_enqueue_script('smpp-script');
-        wp_enqueue_script('smpp-mathjax');
 
         ob_start();
         include SMPP_PLUGIN_PATH . 'templates/mcq-ui.php';
