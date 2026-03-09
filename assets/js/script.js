@@ -34,6 +34,12 @@
         report: $('#smpp-report'),
     };
 
+    function setInnerHtml($element, html) {
+        if ($element && $element.length) {
+            $element[0].innerHTML = html;
+        }
+    }
+
     function init() {
         initializeFilterState();
         bindEvents();
@@ -368,7 +374,7 @@
             </div>
         `;
 
-        dom.questionBox.html(html);
+        setInnerHtml(dom.questionBox, html);
         dom.questionBox.find('.smpp-option').on('click', function () {
             evaluateAnswer($(this), q);
         });
@@ -401,7 +407,7 @@
         dom.score.text(state.score);
         dom.next.show();
 
-        dom.explanation.html(question.explanation || 'No explanation provided.');
+        setInnerHtml(dom.explanation, question.explanation || 'No explanation provided.');
 
         if (question.link) {
             dom.link.attr('href', question.link);
@@ -421,7 +427,7 @@
 
     function endSession() {
         stopTimer();
-        dom.questionBox.html('<p class="smpp-finish">Practice complete! Click "View My Performance" for your report.</p>');
+        setInnerHtml(dom.questionBox, '<p class="smpp-finish">Practice complete! Click "View My Performance" for your report.</p>');
         dom.next.hide();
     }
 
@@ -464,7 +470,8 @@
 
     function renderReport() {
         if (!state.answered) {
-            dom.report.html(`<p>${smppConfig.strings.startFirst}</p>`).show();
+            setInnerHtml(dom.report, `<p>${smppConfig.strings.startFirst}</p>`);
+            dom.report.show();
             return;
         }
 
@@ -472,7 +479,7 @@
         const attempted = state.answered;
         const wrong = attempted - state.score;
 
-        dom.report.html(`
+        setInnerHtml(dom.report, `
             <ul class="smpp-report-list">
                 <li><strong>Attempted:</strong> ${attempted}</li>
                 <li><strong>Correct:</strong> ${state.score}</li>
@@ -480,7 +487,8 @@
                 <li><strong>Accuracy:</strong> ${accuracy}%</li>
                 <li><strong>Total Time:</strong> ${formatTime(state.timer)}</li>
             </ul>
-        `).show();
+        `);
+        dom.report.show();
     }
 
     function typesetMath() {
