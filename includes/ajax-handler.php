@@ -15,6 +15,9 @@ class Smart_MCQ_Ajax_Handler {
         add_action('wp_ajax_smpp_get_filters', array($this, 'get_filters'));
         add_action('wp_ajax_nopriv_smpp_get_filters', array($this, 'get_filters'));
 
+        add_action('wp_ajax_smpp_get_question_bank', array($this, 'get_question_bank'));
+        add_action('wp_ajax_nopriv_smpp_get_question_bank', array($this, 'get_question_bank'));
+
         add_action('wp_ajax_smpp_get_questions', array($this, 'get_questions'));
         add_action('wp_ajax_nopriv_smpp_get_questions', array($this, 'get_questions'));
     }
@@ -64,6 +67,15 @@ class Smart_MCQ_Ajax_Handler {
 
         shuffle($filtered);
         wp_send_json_success(array('questions' => $filtered));
+    }
+
+    public function get_question_bank()
+    {
+        check_ajax_referer('smpp_nonce', 'nonce');
+
+        $questions = $this->csv_loader->load_all_questions();
+
+        wp_send_json_success(array('questions' => $questions));
     }
 
     private function unique_values($questions, $field)
